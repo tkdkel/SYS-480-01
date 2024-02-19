@@ -1,7 +1,3 @@
-# Connecting to vCenter
-$vcenter = Read-Host -prompt "Enter the name of your vCenter server (including yourname.local)."
-Connect-VIServer($vcenter)
-
 # Getting information to clone VM
 Get-VM
 $originalvm = Read-Host -prompt "Enter the name of the VM you want to clone."
