@@ -283,3 +283,16 @@ function editPower(){
             Write-Host -ForegroundColor Red "Error editing Power State"
         }
 }
+
+function New-Network(){
+# Creates a new virtual switch
+    $newSwitch = Read-Host "Enter the name of the new vSwitch: "
+    $vmHost = (Get-VMHost).Name
+    $switchName = New-VirtualSwitch -VMHost $vmHost -Name $newSwitch -ErrorAction Stop
+    Write-Host -ForegroundColor Green "New vSwitch ($newSwitch) created on $vmHost"
+
+# Creates a new port group
+    $newPort = Read-Host "Enter the name of the new port group: "
+    New-VirtualPortGroup -VirtualSwitch $newSwitch -Name $newPort -ErrorAction Stop
+    Write-Host -ForegroundColor Green "New port group ($newPort) created on $vmHost"
+}
