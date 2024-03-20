@@ -306,14 +306,3 @@ function Get-NetworkInfo(){
     }
 }
 
-function New-Network(){
-# creates a new virtual Switch and port group
-    $vswitch = Read-Host "Enter the name of the new vSwitch: "
-    $vmHost = (Get-VMHost).Name
-    $switch = New-VirtualSwitch -VMHost $vmHost -Name $vswitch -ErrorAction Stop
-    Write-Host -ForegroundColor Green "New vSwitch $vswitch created on $vmHost"
-
-    $portName = Read-Host "Enter the name of the new port group name:"
-    New-VirtualPortGroup -VirtualSwitch $vswitch -Name $portName -ErrorAction Stop
-    Write-Host -ForegroundColor Green "New port group $portName created on $vswitch"
-}
