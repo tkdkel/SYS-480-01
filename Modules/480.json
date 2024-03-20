@@ -1,0 +1,6 @@
+{
+    "vcenter_server": "vcenter.kel.local",
+    "esxi_host": "192.168.7.36",
+    "vm_folder": "BASEVM",
+    "default_network": "480-WAN"
+}
