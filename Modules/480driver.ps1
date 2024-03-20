@@ -11,8 +11,8 @@ if ($global:DefaultVIServer){
     Write-Host -ForegroundColor Cyan "3. Switch A VM's Network"
     Write-Host -ForegroundColor Cyan "4. Edit Powerstate of a VM"
     Write-Host -ForegroundColor Red "5. Disconnect from the server"
-    Write-Host -ForegroundColor Cyan "6. Create a Virtual Switch"
-    Write-Host -ForegroundColor Cyan "7. Check Network Information"
+    Write-Host -ForegroundColor Cyan "6. Create a Virtual Switch (To be implemented)"
+    Write-Host -ForegroundColor Cyan "7. Check Network Information (To be implemented)"
     Write-Host -ForegroundColor DarkRed "8. Exit"
 
     $ans = Read-Host "Select an option:"

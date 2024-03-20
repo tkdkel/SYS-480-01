@@ -283,26 +283,3 @@ function editPower(){
             Write-Host -ForegroundColor Red "Error editing Power State"
         }
 }
-
-function Get-NetworkInfo(){
-    $vm = Select-VM
-    $guest = Get-VMGuest -VM $vm
-    $network = Get-NetworkAdapter -VM $vm
-    
-
-    $i = 0
-    foreach($adapter in $network){
-        $name = $adapter.Name
-        $ip = $guest.IPAddress[$i] | Where-Object { $_ -match '\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}' }
-        $mac = $adapter.MACAddress
-        $subnet = "255.255.255.0"
-
-        Write-Host -ForegroundColor Cyan "Network Information for $($name)"
-        Write-Host -ForegroundColor DarkCyan "Hostname: " $guest.Hostname
-        Write-Host -ForegroundColor DarkCyan "IP Address: $ip"
-        Write-Host -ForegroundColor DarkCyan "MAC Address: $mac"
-        Write-Host -ForegroundColor DarkCyan "Subnet: $subnet"
-        $i=$i+2
-    }
-}
-
