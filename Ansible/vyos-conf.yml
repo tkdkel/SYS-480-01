@@ -1,0 +1,23 @@
+# Ansible playbook to configure fw-blue1
+- name: "fw-bluex config"
+  hosts: vyos
+  vars_prompt:
+  - name: password
+    prompt: "Enter your password for fw-bluex"
+    private: true
+
+  tasks:
+  - name: Set password hash
+    set_fact:
+      password_hash: "{{ password | password_hash('sha512') }}"
+  - name: Load config from template
+    become: yes
+    template:
+      src: /home/kel/SYS-480-01/Ansible/config.boot.j2
+      dest: /config/config.boot
+      mode: "0755"
+      owner: root
+      group: vyattacfg
+  - name: Bounce and end
+    become: true
+    ansible.builtin.shell: nohup bash -c "/usr/bin/sleep 5 && /usr/sbin/shutdown -r now" &
