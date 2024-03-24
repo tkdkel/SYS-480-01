@@ -52,6 +52,14 @@ function Connect-480([string] $server){
     }
 }
 
+function Disconnect-480(){
+    #Checks for connection - if connected, disconnects
+    if ($global:DefaultVIServer){
+        Disconnect-VIServer -Server $global:DefaultVIServer -Confirm:$false
+        Write-Host -ForegroundColor Green "Disconnected from vcenter.kel.local"
+    }
+}
+
 function Get-480Config([string] $config_path){
     $conf = $null
     if(test-path $config_path){
@@ -163,7 +171,7 @@ function CreateClone(){
         $vm=Select-VM
         $ds=Select-Datastore
         if ($clone_type -eq "1"){
-            New-VM -Name $clone_name -VM $vm -Datastore $ds -VMHost "192.168.7.26" -Location $folder -RunAsync
+            New-VM -Name $clone_name -VM $vm -Datastore $ds -VMHost "192.168.7.36" -Location $folder -RunAsync
             Write-Host -ForegroundColor Green "Full Clone created: $clone_name"
         }
     }
@@ -173,7 +181,7 @@ function CreateClone(){
         $vm=Select-VM
         $ds=Select-Datastore
         $snap=Select-Snapshot
-        New-VM -Name $clone_name -VM $vm -Datastore $ds -VMHost "192.168.7.26" -Location $folder -LinkedClone -ReferenceSnapshot $snap
+        New-VM -Name $clone_name -VM $vm -Datastore $ds -VMHost "192.168.7.36" -Location $folder -LinkedClone -ReferenceSnapshot $snap
     }
     else{
         continue
@@ -230,69 +238,146 @@ function Select-Snapshot(){
                 return $null
             }
         }
-        
-function changeNetwork(){
-    $vm = Select-VM
-        
-    Write-Host -ForegroundColor Cyan "Listing all networks:"
-    $allnw = Get-VirtualNetwork
-    $index = 1
-    Write-Host ""
-    Write-Host "Select a Network"
-    foreach ($n in $allnw){
-        Write-Host -ForegroundColor Cyan [$index] $n.Name
-        $index++
-    }
-    $newNetwork = Read-Host "Enter the number of the new network for the VM"
-    if ($newNetwork -eq "1"){
-        $newNetwork = $allnw[0].Name
-    }
-    else{
-        $newNetwork = $allnw[$newNetwork-1].Name
-    }
-    
-    $networkAdapter = $vm | Get-NetworkAdapter
-    Set-NetworkAdapter -NetworkAdapter $networkAdapter -NetworkName $newNetwork
-}  
 
-function editPower(){
-    try{
-        $vm=Select-VM
-        if ($vm.PowerState -eq "PoweredOn") {
-            Write-Host -ForegroundColor Green "$($vm.name) - Powered On"
-            }   
-        else {
-            Write-Host -ForegroundColor Red "$($vm.name) - Powered Off"
-            }
-
-        Write-Host -ForegroundColor DarkCyan "1 - Power On"
-        Write-Host -ForegroundColor DarkCyan "2 - Power Off"
-        $power_state= Read-Host "Select a Power State by number"
-            if ($power_state -eq "1"){
-                Start-VM -VM $vm -Confirm:$false
-                Write-Host -ForegroundColor Green "VM $($vm.Name) powered on"
-            }
-            elseif ($power_state -eq "2"){
-                Stop-VM -VM $vm -Confirm:$false
-                Write-Host -ForegroundColor Green "VM $($vm.Name) powered off"
-            }
-            else{
-                continue
-            }
-        }catch{
-            Write-Host -ForegroundColor Red "Error editing Power State"
+function Get-IP() {
+    try {
+        $selectedVM = Select-VM
+        if (-not $selectedVM) {
+            Write-Host -ForegroundColor Red "No VM selected."
+            return
         }
+
+        $vmGuestDetails = Get-VMGuest -VM $selectedVM
+        if (-not $vmGuestDetails) {
+            Write-Host -ForegroundColor Red "Failed to retrieve details for the selected VM."
+            return
+        }
+
+        $vmNetworkAdapters = Get-NetworkAdapter -VM $selectedVM
+        if (-not $vmNetworkAdapters) {
+            Write-Host -ForegroundColor Red "No network adapters found for the selected VM."
+            return
+        }
+
+        $index = 0
+        foreach ($adapter in $vmNetworkAdapters) {
+            $adapterName = $adapter.Name
+            $vmIP = $vmGuestDetails.IPAddress[$index] | Where-Object { $_ -match '\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}' }
+            $vmMAC = $adapter.MACAddress
+            $vmSubnetMask = "255.255.255.0"
+
+            Write-Host -ForegroundColor Green "Network Information for Adapter: $($adapterName)"
+            Write-Host -ForegroundColor DarkGreen "Hostname: $($vmGuestDetails.Hostname)"
+            Write-Host -ForegroundColor DarkGreen "IP Address: $vmIP"
+            Write-Host -ForegroundColor DarkGreen "MAC Address: $vmMAC"
+            Write-Host -ForegroundColor DarkGreen "Subnet Mask: $vmSubnetMask"
+            
+            $index += 2
+        }
+    } catch {
+        Write-Host -ForegroundColor Red "An unexpected error occurred: $_"
+    }
 }
 
 function New-Network(){
 # Creates a new virtual switch
-    $newSwitch = Read-Host "Enter the name of the new vSwitch: "
     $vmHost = (Get-VMHost).Name
-    $switchName = New-VirtualSwitch -VMHost $vmHost -Name $newSwitch -ErrorAction Stop
-    Write-Host -ForegroundColor Green "New vSwitch ($newSwitch) created on $vmHost"
+    try {
+        # Attempting to create a new virtual switch
+        $switchName = Read-Host "Enter the name of the new vSwitch: "
+        New-VirtualSwitch -VMHost $vmHost -Name $switchName -ErrorAction Stop
+        Write-Host -ForegroundColor Green "New vSwitch ($switchName) created on $vmHost"
+    } catch {
+        Write-Host -ForegroundColor Red "Failed to create vSwitch ($switchName) on $vmHost"
+    }
 
-# Creates a new port group
-    $newPort = Read-Host "Enter the name of the new port group: "
-    New-VirtualPortGroup -VirtualSwitch $newSwitch -Name $newPort -ErrorAction Stop
-    Write-Host -ForegroundColor Green "New port group ($newPort) created on $vmHost"
+    try {
+        # Attempting to create a new port group
+        $portGroupName = Read-Host "Enter the name of the new port group: "
+        New-VirtualPortGroup -VirtualSwitch $switchName -Name $portGroupName -ErrorAction Stop
+        Write-Host -ForegroundColor Green "New port group ($portGroupName) created on $vmHost"
+    } catch {
+        Write-Host -ForegroundColor Red "Failed to create port group ($portGroupName) on $vmHost"
+    }
 }
+
+function Set-VMpower() {
+    try {
+        $selectedVM = Select-VM
+        if (-not $selectedVM) {
+            Write-Host -ForegroundColor Red "No VM selected."
+            return
+        }
+
+        if ($selectedVM.PowerState -eq "PoweredOn") {
+            Write-Host -ForegroundColor Green "$($selectedVM.Name) - Powered On"
+        } else {
+            Write-Host -ForegroundColor Red "$($selectedVM.Name) - Powered Off"
+        }
+
+        Write-Host -ForegroundColor DarkGreen "1 - Power On"
+        Write-Host -ForegroundColor DarkRed "2 - Power Off"
+        $userChoice = Read-Host "Select what you would like to do with the VM."
+        
+        switch ($userChoice) {
+            "1" {
+                Start-VM -VM $selectedVM -Confirm:$false
+                Write-Host -ForegroundColor Green "VM $($selectedVM.Name) powered on"
+            }
+            "2" {
+                Stop-VM -VM $selectedVM -Confirm:$false
+                Write-Host -ForegroundColor Green "VM $($selectedVM.Name) powered off"
+            }
+            default {
+                Write-Host -ForegroundColor Yellow "Invalid selection."
+            }
+        }
+    } catch {
+        Write-Host -ForegroundColor Red "Error changing the power state of the VM."
+    }
+}
+
+function Set-Network {
+    try {
+        $selectedVM = Select-VM
+        if (-not $selectedVM) {
+            Write-Host -ForegroundColor Red "No VM selected."
+            return
+        }
+
+        $vmNetworkAdapters = Get-NetworkAdapter -VM $selectedVM
+        if ($vmNetworkAdapters.Count -eq 0) {
+            Write-Host -ForegroundColor Red "No network adapters found."
+            return
+        }
+
+        Write-Host -ForegroundColor Cyan "Select the network adapter(s) you want to configure by index:"
+        for ($i = 0; $i -lt $vmNetworkAdapters.Count; $i++) {
+            Write-Host -ForegroundColor Cyan "[$($i + 1)] $($vmNetworkAdapters[$i].Name)"
+        }
+
+        $adapterSelections = Read-Host "Enter the adapter numbers separated by comma (e.g., 1,3)"
+        $selectedAdapters = $adapterSelections.Split(',') | ForEach-Object { $vmNetworkAdapters[$_ - 1] }
+
+        Write-Host -ForegroundColor Cyan "Listing all networks:"
+        $allNetworks = Get-VirtualNetwork
+        for ($i = 0; $i -lt $allNetworks.Count; $i++) {
+            Write-Host -ForegroundColor Cyan "[$($i + 1)] $($allNetworks[$i].Name)"
+        }
+
+        $networkSelection = Read-Host "Enter the number of the new network for the selected adapter(s)"
+        $selectedNetworkName = $allNetworks[$networkSelection - 1].Name
+
+        if ($selectedNetworkName) {
+            foreach ($adapter in $selectedAdapters) {
+                Set-NetworkAdapter -NetworkAdapter $adapter -NetworkName $selectedNetworkName -Confirm:$false
+                Write-Host -ForegroundColor Green "Network adapter $($adapter.Name) of VM $($selectedVM.Name) changed to $selectedNetworkName"
+            }
+        } else {
+            Write-Host -ForegroundColor Red "Invalid network selection."
+        }
+    } catch {
+        Write-Host -ForegroundColor Red "An error occurred while changing the network: $_"
+    }
+}
+
