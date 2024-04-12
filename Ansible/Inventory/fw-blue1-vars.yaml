@@ -1,3 +1,10 @@
+all:
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    ansible_connection: network_cli
+    ansible_network_os: vyos
+    ansible_user: vyos
+
 vyos:
   hosts:
     10.0.17.200:
@@ -11,9 +18,3 @@ vyos:
       shared_network: blue1
       dhcp_name_server: 10.0.5.5
       dhcp_domain: blue1.local
-
-  vars:
-    ansible_python_interpreter: /usr/bin/python3
-    ansible_connection: network_cli
-    ansible_network_os: vyos
-    ansible_user: vyos
