@@ -13,7 +13,8 @@ if ($global:DefaultVIServer){
     Write-Host -ForegroundColor Red "5. Disconnect from the server"
     Write-Host -ForegroundColor Cyan "6. Create a Virtual Switch"
     Write-Host -ForegroundColor Cyan "7. Check Network Information"
-    Write-Host -ForegroundColor DarkRed "8. Exit"
+    Write-Host -ForegroundColor Cyan "8. Set a static IP"
+    Write-Host -ForegroundColor DarkRed "9. Exit"
 
     $ans = Read-Host "Select an option:"
 
@@ -38,7 +39,10 @@ if ($global:DefaultVIServer){
     if($ans -eq 7){
         Get-IP
     }
-    if($ans -eq "exit" -or $ans -eq "8"){
+    if($ans -eq 8){
+        Set-WinIP
+    }
+    if($ans -eq "exit" -or $ans -eq "9"){
         exit
     }
     else{

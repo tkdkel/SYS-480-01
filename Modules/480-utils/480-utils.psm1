@@ -381,3 +381,21 @@ function Set-Network {
     }
 }
 
+function Set-WinIP {
+    try{
+        $vm = Select-VM
+        $passwd = Read-Host "Enter the password for your deployer account:" -AsSecureString
+        $ip = Read-Host "Enter the IP for the new VM:"
+        $subnet = Read-Host "Enter the subnet (ex. 255.255.255.0):"
+        $dns = Read-Host "Enter the IP for the DNS server:"
+        $gateway = Read-Host "Enter the gateway IP:"
+    } catch {
+        Write-Host -ForegroundColor Red "An error has occured."
+    }
+
+    $staticIP = "netsh interface ipv4 set address Ethernet0 static $ip $subnet $gateway"
+    $setDNS = "netsh interface ipv4 add dnsserver Ethernet0 address=$dns index=1"
+
+    Invoke-VMScript -ScriptText $staticIP -VM $vm -GuestUser Administrator -GuestPassword $passwd
+    Invoke-VMScript -ScriptText $setDNS -VM $vm -GuestUser Administrator -GuestPassword $passwd
+}
