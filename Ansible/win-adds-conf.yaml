@@ -54,7 +54,7 @@
         Import-Module ActiveDirectory
         New-ADOrganizationalUnit -Name blue1 -Path "DC=BLUE,DC=local"
         New-ADOrganizationalUnit -Name Accounts -Path "OU=blue1,DC=BLUE,DC=local"
-        New-ADOrganizationalUnit -Name Groups -Path "OU=Accounts,DC=BLUE,DC=local"
+        New-ADOrganizationalUnit -Name Groups -Path "OU=blue1,OU=Accounts,DC=BLUE,DC=local"
         New-ADOrganizationalUnit -Name Computers -Path "OU=blue1,DC=BLUE,DC=local"
-        New-ADOrganizationalUnit -Name Servers -Path "OU=Computers,DC=BLUE,DC=local"
-        New-ADOrganizationalUnit -Name Workstations -Path "OU=Computers,DC=BLUE,DC=local"
+        New-ADOrganizationalUnit -Name Servers -Path "OU=blue1,OU=Computers,DC=BLUE,DC=local"
+        New-ADOrganizationalUnit -Name Workstations -Path "OU=blue1,OU=Computers,DC=BLUE,DC=local"
