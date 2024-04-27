@@ -1,0 +1,9 @@
+- name: domain users and groups
+  hosts: domain_controller
+  tasks:
+  - name: read csv file
+    community.general.read_csv:
+      path: "Inventory/horrormovies.csv"
+    register: name
+    delegate_to: 127.0.0.1
+  - name: 

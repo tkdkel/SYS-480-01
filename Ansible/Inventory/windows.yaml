@@ -1,7 +1,7 @@
 windows:
   hosts:
   children:
-    servers:
+    domain_controller:
       hosts:
         10.0.5.5:
           hostname: dc-blue1
