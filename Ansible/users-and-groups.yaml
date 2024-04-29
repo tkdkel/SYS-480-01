@@ -1,9 +1,56 @@
 - name: domain users and groups
   hosts: domain_controller
+  vars:
+    csv_path: "/home/kel/SYS-480-01/Ansible/Inventory/horror-movies.csv"
+    groups_ou: "OU=Groups,OU=Accounts,OU=blue1,DC=BLUE,DC=local"
+    accounts_ou: "OU=Accounts,OU=blue1,DC=BLUE,DC=local"
+    generated_passwords_csv_path: "/home/kel/SYS-480-01/Ansible/Inventory/generated_passwords.csv"
   tasks:
   - name: read csv file
     community.general.read_csv:
-      path: "Inventory/horrormovies.csv"
-    register: name
-    delegate_to: 127.0.0.1
-  - name: 
+      path: "{{ csv_path }}"
+    register: characters
+    delegate_to: localhost
+
+  - name: create groups
+    community.windows.win_domain_group:
+      name: "{{ item.Film }}"
+      scope: domainlocal
+      organizational_unit: "{{ groups_ou }}"
+    loop: "{{ characters.list | unique(attribute='Film') }}"
+
+  - name: generate random passwords
+    set_fact:
+      random_passwords: "{{ random_passwords | default([]) + [lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits', 'punctuation'])] }}"
+    loop: "{{ range(0, (characters.list | length | int)) | list }}"
+    run_once: true
+
+  - name: create users
+    community.windows.win_domain_user:
+      name: "{{ characters.list[item - 1].Name | regex_replace('[^a-zA-Z0-9_\\- ]', '') | trim }}"
+      password: "{{ random_passwords[item - 1] }}"
+      groups: "{{ characters.list[item - 1].Film | trim }}"
+      state: present
+    loop: "{{ range(0, (characters.list | length | int)) | list }}"
+
+  - name: create csv with passwords
+    set_fact:
+      csv_content: |
+        Name,Film,Password
+        {% for item in characters.list %}
+        {{ item.Name | regex_replace('[^-a-zA-Z0-9_ ]', '') | trim }},{{ item.Film | trim }},{{random_passwords[loop.index0] }}
+        {% endfor %}
+
+  - name: write csv content to file
+    copy:
+      content: "{{ csv_content }}"
+      dest: "{{ generated_passwords_csv_path }}"
+    delegate_to: localhost
+
+  - name: encrypt csv with ansible-vault
+    command: ansible-vault encrypt Inventory/generated_passwords.csv
+    args:
+      executable: /bin/bash
+    changed_when: false
+    delegate_to: localhost
+
