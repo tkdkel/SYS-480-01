@@ -9,6 +9,10 @@ windows:
       hosts:
         10.0.5.13:
           hostname: fs-blue1
+    workstation:
+      hosts:
+        10.0.5.x # This would be a DHCP-assigned IP
+          hostname: wks-blue1
 
   vars:
     ansible_user: deployer
