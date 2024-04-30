@@ -1,0 +1,55 @@
+- name: join blue.local domain
+  win_domain_membership:
+    dns_domain_name: blue.local
+    hostname: "{{ hostname }}"
+    domain_admin_user: "{{ domain_admin }}"
+    domain_admin_password: "{{ domain_password }}"
+    state: domain
+    domain_ou_path: "OU=Computers,OU=blue1,DC=BLUE,DC=local"
+  register: domain_join
+
+- name: reboot after domain join
+  win_reboot:
+  when: domain_join.reboot_required
+
+- name: installs file service
+  win_feature: 
+    name: FS-FileServer
+    state: present
+    include_management_tools: yes
+  register: fileservice
+
+- name: reboot after file service install
+  win_reboot:
+  when: fileservice.reboot_required
+
+- name: reads csv for films
+  community.general.read_csv:
+    path: "Inventory/horrormovies.csv"
+  register: csv
+  delegate_to: 127.0.0.1
+
+- name: create shares directory
+  win_file:
+    path: C:\\Shares
+    state: directory
+
+- name: create folders for groups
+  win_file:
+    path: "C:\\Shares\\{{ item.Film }}"
+    state: directory
+  loop: "{{ csv.list }}"
+  when: item.Film != ''
+
+- name: create file shares for {{ item.Film }}
+  win_share:
+    name: "{{ item.Film }} Share"
+    path: "C:\\Shares\\{{ item.Film }}"
+    change: "{{ item.Film }},Domain Admins"
+    state: present
+  loop: "{{ csv.list }}"
+  when: item.Film != ''
+
+- name: create gpo for drive mapping
+  win_gpo:
+    name:
