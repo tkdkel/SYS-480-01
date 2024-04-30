@@ -1,3 +1,13 @@
+- name: create file service
+  hosts: file_server
+  vars_prompt:
+  - name: domain_admin
+    prompt: "Enter the domain admin username"
+    private: no
+  - name: domain_admin_password
+    prompt: "Enter the domain admin password"
+    private: yes
+
 - name: join blue.local domain
   win_domain_membership:
     dns_domain_name: blue.local
@@ -50,6 +60,15 @@
   loop: "{{ csv.list }}"
   when: item.Film != ''
 
-- name: create gpo for drive mapping
-  win_gpo:
-    name:
+- name: check for powershell script on server
+  ansible.builtin.win_copy:
+    src: ./map-drives.ps1
+    dest: "C:\\Users\\Administrator\\map-drives.ps1"
+
+- name: execute script to create GPO
+  win_shell: |
+    & "C:\\Users\\Administrator\\map-drives.ps1"
+  args:
+    executable: powershell
+  register: mapdrives
+  ignore_errors: yes
