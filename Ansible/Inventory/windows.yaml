@@ -5,6 +5,10 @@ windows:
       hosts:
         10.0.5.5:
           hostname: dc-blue1
+    file_server:
+      hosts:
+        10.0.5.13:
+          hostname: fs-blue1
 
   vars:
     ansible_user: deployer
